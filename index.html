@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Solar Pro Estimator</title>
+  <title>Solar Pro Estimator ☀️</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
 <div class="container">
   <h1>⚡ Solar Pro Estimator</h1>
 
   <input type="number" id="systemSize" placeholder="System Size (kW)">
-  <input type="number" id="sunlightHours" placeholder="Sunlight Hours">
   <input type="number" id="efficiency" placeholder="Efficiency (%)">
   <input type="number" id="electricityRate" placeholder="Electricity Rate (₹/kWh)">
   <input type="number" id="installationCost" placeholder="Installation Cost (₹)">
@@ -21,19 +21,23 @@
 
   <div id="results" class="results">
     <h2>Results</h2>
+
+    <p>📍 Location: <span id="location"></span></p>
+    <p>☀️ Irradiance: <span id="irradiance"></span> kWh/m²/day</p>
+
     <p>Daily: <span id="daily"></span> kWh</p>
     <p>Monthly: <span id="monthly"></span> kWh</p>
     <p>Yearly: <span id="yearly"></span> kWh</p>
 
     <h3>💰 Savings</h3>
-    <p>Monthly Savings: ₹ <span id="monthlySavings"></span></p>
-    <p>Yearly Savings: ₹ <span id="yearlySavings"></span></p>
+    <p>Monthly: ₹ <span id="monthlySavings"></span></p>
+    <p>Yearly: ₹ <span id="yearlySavings"></span></p>
 
     <h3>📈 ROI</h3>
-    <p>Payback Period: <span id="payback"></span> years</p>
+    <p>Payback: <span id="payback"></span> years</p>
 
     <h3>🔋 Battery</h3>
-    <p>Recommended Battery: <span id="battery"></span> kWh</p>
+    <p>Recommended: <span id="battery"></span> kWh</p>
 
     <canvas id="chart"></canvas>
   </div>
