@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Solar Pro Estimator ☀️</title>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  font-family: Arial;
+  background: linear-gradient(to right, #ffcc00, #ff6600);
+  margin: 0;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  margin-top: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+
+h1 {
+  text-align: center;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  font-size: 16px;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: orange;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #e65c00;
+}
+
+.results {
+  margin-top: 20px;
+  display: none;
+}
+
+canvas {
+  margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>⚡ Solar Pro Estimator</h1>
+
+  <input type="number" id="systemSize" placeholder="System Size (kW)">
+  <input type="number" id="efficiency" placeholder="Efficiency (%)">
+  <input type="number" id="electricityRate" placeholder="Electricity Rate (₹/kWh)">
+  <input type="number" id="installationCost" placeholder="Installation Cost (₹)">
+
+  <button onclick="calculate()">Calculate</button>
+
+  <div id="results" class="results">
+    <h2>Results</h2>
+    <p>📍 Location: <span id="location"></span></p>
+    <p>☀️ Irradiance: <span id="irradiance"></span> kWh/m²/day</p>
+
+    <p>Daily: <span id="daily"></span> kWh</p>
+    <p>Monthly: <span id="monthly"></span> kWh</p>
+    <p>Yearly: <span id="yearly"></span> kWh</p>
+
+    <h3>💰 Savings</h3>
+    <p>Monthly: ₹ <span id="monthlySavings"></span></p>
+    <p>Yearly: ₹ <span id="yearlySavings"></span></p>
+
+    <h3>📈 ROI</h3>
+    <p>Payback: <span id="payback"></span> years</p>
+
+    <h3>🔋 Battery</h3>
+    <p>Recommended: <span id="battery"></span> kWh</p>
+
+    <canvas id="chart"></canvas>
+  </div>
+</div>
+
+<script>
+let chart;
+
+// 🌍 Get user location
+async function getLocation() {
+  try {
+    const res = await fetch("https://ipapi.co/json/");
+    const data = await res.json();
+    return {
+      lat: data.latitude,
+      lon: data.longitude,
+      city: data.city
+    };
+  } catch {
+    return { lat: 13, lon: 80, city: "Unknown" };
+  }
+}
+
+// ☀️ NASA API
+async function getNASASolarData(lat, lon) {
+  try {
+    const url = `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude=${lon}&latitude=${lat}&start=20240101&end=20241231&format=JSON`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const values = data.properties.parameter.ALLSKY_SFC_SW_DWN;
+
+    const avg =
+      Object.values(values).reduce((a, b) => a + b, 0) /
+      Object.values(values).length;
+
+    return avg;
+  } catch {
+    return 5;
+  }
+}
+
+// 🇮🇳 ISRO-style correction
+function applyISROCorrection(irradiance, lat) {
+  if (lat > 20) return irradiance * 0.95;
+  if (lat > 10) return irradiance * 1.05;
+  return irradiance * 1.1;
+}
+
+// ⚡ MAIN
+async function calculate() {
+  let systemSize = parseFloat(document.getElementById("systemSize").value);
+  let efficiency = parseFloat(document.getElementById("efficiency").value) / 100;
+  let rate = parseFloat(document.getElementById("electricityRate").value);
+  let cost = parseFloat(document.getElementById("installationCost").value);
+
+  if (!systemSize || !efficiency || !rate || !cost) {
+    alert("Fill all fields!");
+    return;
+  }
+
+  const loc = await getLocation();
+
+  let irradiance = await getNASASolarData(loc.lat, loc.lon);
+  irradiance = applyISROCorrection(irradiance, loc.lat);
+
+  const sunlightHours = irradiance;
+
+  const daily = systemSize * sunlightHours * efficiency;
+  const monthly = daily * 30;
+  const yearly = daily * 365;
+
+  const monthlySavings = monthly * rate;
+  const yearlySavings = yearly * rate;
+
+  const payback = cost / yearlySavings;
+  const battery = daily * 0.5;
+
+  // UI Update
+  document.getElementById("location").innerText = loc.city;
+  document.getElementById("irradiance").innerText = irradiance.toFixed(2);
+
+  document.getElementById("daily").innerText = daily.toFixed(2);
+  document.getElementById("monthly").innerText = monthly.toFixed(2);
+  document.getElementById("yearly").innerText = yearly.toFixed(2);
+
+  document.getElementById("monthlySavings").innerText = monthlySavings.toFixed(0);
+  document.getElementById("yearlySavings").innerText = yearlySavings.toFixed(0);
+
+  document.getElementById("payback").innerText = payback.toFixed(1);
+  document.getElementById("battery").innerText = battery.toFixed(2);
+
+  document.getElementById("results").style.display = "block";
+
+  renderChart(monthly);
+}
+
+// 📊 Chart
+function renderChart(monthlyValue) {
+  const ctx = document.getElementById("chart").getContext("2d");
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+      datasets: [{
+        label: "Monthly Generation (kWh)",
+        data: Array(12).fill(monthlyValue),
+        borderColor: "orange",
+        fill: false,
+        tension: 0.3
+      }]
+    }
+  });
+}
+</script>
+
+</body>
+</html>
